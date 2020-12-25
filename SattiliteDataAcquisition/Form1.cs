@@ -9,6 +9,7 @@ using System.Windows.Forms;
 using System.IO.Ports;
 using System.IO;
 using System.Timers;
+using System.Windows.Forms.DataVisualization.Charting;
 
 namespace SattiliteDataAcquisition
 {
@@ -21,9 +22,9 @@ namespace SattiliteDataAcquisition
         private byte[] buffer;
         private Object locker;
 
-        private List<SattiliteCom> sattiliteComList;
+        private List<MeterCom> sattiliteComList;
 
-        private List<Config> configList;
+        private List<SerialPortConfig> configList;
 
         public Form1()
         {
@@ -35,8 +36,8 @@ namespace SattiliteDataAcquisition
             this.buttonOpen.Enabled = true;
             this.buttonClose.Enabled = false;
             this.path = @"D:\Work";
-            this.configList = new List<Config>();
-            this.sattiliteComList = new List<SattiliteCom>();
+            this.configList = new List<SerialPortConfig>();
+            this.sattiliteComList = new List<MeterCom>();
 
             StreamReader sr = new StreamReader("config.csv", Encoding.UTF8);
             String line;
@@ -45,8 +46,9 @@ namespace SattiliteDataAcquisition
             while ((line = sr.ReadLine()) != null)
             {
                 string[] items = line.Split(chs);
-                Config config = new Config(items[0], items[1], items[2], items[3]);
-                SattiliteCom sc = new SattiliteCom(config.path,config.port,this);
+                //COM23,9600,None,8,1,牛栏江桥上行线7#桥墩
+                SerialPortConfig config = new SerialPortConfig(items[0], items[1], items[2], items[3], items[4], items[6]);
+                MeterCom sc = new MeterCom(config, this);
                 this.configList.Add(config);
                 this.sattiliteComList.Add(sc);
 
@@ -54,23 +56,29 @@ namespace SattiliteDataAcquisition
                 this.listView1.Items.Add(listItem);
             }
             sr.Close();
+            /*
+            chart1.Series.Add("工况瞬时流量");
+            chart1.Series["工况瞬时流量"].ChartType = SeriesChartType.Line;
+            //chart1.Series["工况瞬时流量"].IsValueShownAsLabel = true;
+
+            chart2.Series.Add("标况瞬时流量");
+            chart2.Series["标况瞬时流量"].ChartType = SeriesChartType.Line;
+            //chart1.Series["标况瞬时流量"].IsValueShownAsLabel = true;
+
+            chart3.Series.Add("燃气温度");
+            chart3.Series["燃气温度"].ChartType = SeriesChartType.Line;
+            //chart1.Series["燃气温度"].IsValueShownAsLabel = true;
+
+            chart4.Series.Add("燃气绝对压力");
+            chart4.Series["燃气绝对压力"].ChartType = SeriesChartType.Line;
+            //chart1.Series["燃气温度"].YAxisType = AxisType.Secondary;
+            //chart1.Series["燃气绝对压力"].IsValueShownAsLabel = true;
+            */
+
+            //chart1.ChartAreas[0].AxisY2.Enabled = AxisEnabled.True;
         }
 
-        class Config
-        {
-            public string id;
-            public string path;
-            public string port;
-            public string position;
-
-            public Config(string id,string path,string port,string pos)
-            {
-                this.id = id;
-                this.path = path;
-                this.port = port;
-                this.position = pos;
-            }
-        }
+        
 
         private void TimerTimeout(object sender, System.Timers.ElapsedEventArgs e)
         {
@@ -139,8 +147,63 @@ namespace SattiliteDataAcquisition
 
         public void AppendLog(string message)
         {
-            this.textBox2.AppendText(message+"\r\n");
+            this.Invoke((EventHandler)(
+                        delegate {
+                            textBox2.AppendText(message + "\r\n");
+                        }));
         }
+
+        public void AppendWorkFlow(double data)
+        {
+            labelWorkFlow.BeginInvoke(new MethodInvoker(() =>
+            {
+                labelWorkFlow.Text = data.ToString();
+            }));
+        }
+
+        public void AppendWorkFlowAccum(double data)
+        {
+            labelWorkFlowAccum.BeginInvoke(new MethodInvoker(() =>
+            {
+                labelWorkFlowAccum.Text = data.ToString();
+            }));
+        }
+
+        public void AppendStandardFlow(double data)
+        {
+            labelStandardFlow.BeginInvoke(new MethodInvoker(() =>
+            {
+                labelStandardFlow.Text = data.ToString();
+            }));
+        }
+
+        public void AppendStandardFlowAccum(double data)
+        {
+            labelStandardFlowAccum.BeginInvoke(new MethodInvoker(() =>
+            {
+                labelStandardFlowAccum.Text = data.ToString();
+            }));
+        }
+
+        public void AppendTemperature(double data)
+        {
+            labelTemperature.BeginInvoke(new MethodInvoker(() =>
+            {
+                labelTemperature.Text = data.ToString();
+            }));
+        }
+
+        public void AppendPressure(double data)
+        {
+            labelPressure.BeginInvoke(new MethodInvoker(() =>
+            {
+                labelPressure.Text = data.ToString();
+            }));
+        }
+
+
+
+
 
         private void buttonClose_Click(object sender, EventArgs e)
         {
@@ -169,7 +232,7 @@ namespace SattiliteDataAcquisition
             this.groupBox3.Enabled = false;
             this.buttonStartBatch.Enabled = false;
             this.buttonStopBatch.Enabled = true;
-            foreach(SattiliteCom sc in this.sattiliteComList)
+            foreach(MeterCom sc in this.sattiliteComList)
             {
                 sc.Start();
             }
@@ -207,7 +270,7 @@ namespace SattiliteDataAcquisition
             this.groupBox3.Enabled = true;
             this.buttonStartBatch.Enabled = true;
             this.buttonStopBatch.Enabled = false;
-            foreach (SattiliteCom sc in this.sattiliteComList)
+            foreach (MeterCom sc in this.sattiliteComList)
             {
                 sc.Stop();
             }
@@ -263,5 +326,10 @@ namespace SattiliteDataAcquisition
                 this.Dispose();
             }
         }
-    }
+
+        private void chart3_Click(object sender, EventArgs e)
+        {
+
+        }
+ }
 }
